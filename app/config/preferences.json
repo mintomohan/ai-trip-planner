@@ -1,0 +1,15 @@
+[
+    {"name": "Adventure", "image": "app/assets/images/adventurer.png"},
+    {"name": "Cruise", "image": "app/assets/images/cruise.png"},
+    {"name": "Winter Sports", "image": "app/assets/images/skiing.png"},
+    {"name": "Gastronomic", "image": "app/assets/images/diet.png"},
+    {"name": "Wellness / Spa", "image": "app/assets/images/meditation.png"},
+    {"name": "Festival / Events", "image": "app/assets/images/confetti.png"},
+    {"name": "Ecotourism", "image": "app/assets/images/planet-earth.png"},
+    {"name": "Historical / Heritage", "image": "app/assets/images/coliseum.png"},
+    {"name": "Art / Design", "image": "app/assets/images/mona-lisa.png"},
+    {"name": "Photography", "image": "app/assets/images/photographer.png"},
+    {"name": "Family Fun", "image": "app/assets/images/family.png"},
+    {"name": "Romantic Getaways", "image": "app/assets/images/romantic.png"},
+    {"name": "Fitness / Active", "image": "app/assets/images/fitness.png"}
+]
