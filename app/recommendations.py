@@ -1,38 +1,62 @@
 from dotenv import load_dotenv
 load_dotenv()
-import os
 import json
 import numpy as np
-from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
+import pandas as pd
+from langchain_anthropic import ChatAnthropic
+import logging
 
-# Sample data: Destination scores matrix
-B = np.array([
-    [7, 2, 3, 8, 6, 9, 5, 10, 8, 7, 7, 6, 6],  # Beijing
-    [6, 3, 2, 9, 7, 8, 5, 7, 6, 6, 8, 7, 5],   # Guangzhou
-    [5, 7, 3, 6, 6, 7, 6, 5, 5, 6, 6, 6, 6],   # Dalian
-    [6, 3, 2, 8, 8, 8, 7, 9, 8, 7, 8, 8, 6],   # Hangzhou
-    [8, 5, 1, 9, 7, 9, 6, 7, 8, 8, 7, 7, 7],   # Hong Kong
-    [7, 3, 6, 8, 8, 9, 6, 8, 8, 8, 8, 7, 7],   # Seoul
-    [7, 2, 2, 9, 7, 9, 5, 9, 8, 7, 7, 7, 6],   # Shanghai
-    [6, 4, 2, 8, 7, 8, 6, 6, 7, 7, 7, 7, 6],   # Shenzhen
-    [6, 6, 3, 7, 7, 7, 7, 6, 6, 6, 6, 7, 6],   # Qingdao
-    [7, 4, 4, 8, 7, 8, 6, 8, 7, 7, 7, 7, 7]    # Taipei (Taiwan)
-])
+APP_VERSION = 'v2'
+N = 5
+
+# Set up logging configuration
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-destinations = [
-    "Beijing", "Guangzhou", "Dalian", "Hangzhou", "Hong Kong", 
-    "Seoul", "Shanghai", "Shenzhen", "Qingdao", "Taipei (Taiwan)"
-]
 
 def load_preferences():
-    with open('app/config/preferences.json', 'r') as file:
+    with open(f'app/config/{APP_VERSION}/preferences.json', 'r') as file:
         preferences = json.load(file)
     return preferences
 
 
-# Function to generate the prompt content for each recommended destination
+
+def load_destination_data(file_path, selected_month):
+    month_mapping = {
+        "Jan": "January",
+        "Feb": "February",
+        "Mar": "March",
+        "Apr": "April",
+        "May": "May",
+        "Jun": "June",
+        "Jul": "July",
+        "Aug": "August",
+        "Sep": "September",
+        "Oct": "October",
+        "Nov": "November",
+        "Dec": "December"
+    }
+    
+    full_month = month_mapping.get(selected_month, selected_month)
+    
+    df = pd.read_csv(file_path)
+    df_filtered = df[df['Month'] == full_month]
+    
+    destinations = df_filtered['Destination'].unique()
+    categories = df_filtered['Category'].unique()
+    
+    score_matrix = np.zeros((len(destinations), len(categories)))
+    
+    for i, destination in enumerate(destinations):
+        for j, category in enumerate(categories):
+            score = df_filtered[(df_filtered['Destination'] == destination) & (df_filtered['Category'] == category)]['Score']
+            if not score.empty:
+                score_matrix[i][j] = score.values[0]
+    
+    return score_matrix, list(destinations), list(categories)
+
+
+
 def generate_prompt(destination, month, preferences):
     preferences_str = ", ".join(preferences)
     prompt = (
@@ -47,59 +71,63 @@ def generate_prompt(destination, month, preferences):
     return prompt
 
 
-# Function to invoke an LLM using LangChain
+
 def invoke_llm(prompt_text):
-    llm = ChatOpenAI(model='gpt-4o', temperature=0.1)
-    #prompt = ChatPromptTemplate.from_template(prompt_text)
-    #print(prompt)
+    llm = ChatAnthropic(model='claude-3-5-sonnet-20240620', temperature=0.1)
     response = llm.invoke(prompt_text).content
     return response
 
 
-def recommend_destinations(selected_preferences, month):
-    print(selected_preferences)
-    preferences = load_preferences()
-    # Calculate max_score based on number of selected preferences
-    max_score = len(selected_preferences) * 10
-    # Create user preference vector A
-    A = np.zeros((len(preferences), 1))
-    for preference in selected_preferences:
-        A[[p["name"] for p in preferences].index(preference)] = 1
-    print(A)
 
-    # Calculate the score for each destination
-    scores = np.dot(B, A).flatten()
-    print(scores)
+def recommend_destinations(selected_preferences, selected_month):
+    logging.debug(selected_preferences)
+    logging.debug(selected_month)
 
-    # Get the indices of the top 3 destinations
-    top_3_indices = np.argsort(scores)[-3:][::-1]
-    print(f"top_3_indices = {top_3_indices}")
+    score_matrix, destinations, categories = load_destination_data(f'app/config/{APP_VERSION}/destination_rankings.csv', selected_month)
+    logging.debug(score_matrix)
+    logging.debug(destinations)
+    logging.debug(categories)
     
-    # Output the top 3 destinations
-    top_3_destinations = []
-    for i in top_3_indices:
-        destination = destinations[i]
-        print(f"Max Score = {max_score}")
-        # Create user preference vector A
-        A = np.zeros(len(selected_preferences))
-        for j, pref in enumerate(selected_preferences):
-            if pref in preferences:
-                A[j] = scores[preferences.index(pref)]
+    results = []
+    
+    max_score = len(selected_preferences) * 10
 
-        # Calculate the total score for the destination
-        total_score = scores[i]
-        print(f"i = {i}")
-        print(f"scores = {scores}")
-        print(f"A = {A}")
-        print(f"Total score = {total_score}")
-        # Calculate percentage match for the destination
-        percentage_match = int((total_score / max_score) * 100)
+    # Create user preference vector A
+    user_preference_vector = np.zeros(len(categories))
+    for pref in selected_preferences:
+        if pref in categories:
+            user_preference_vector[categories.index(pref)] = 1
 
-        prompt = generate_prompt(destination, month, selected_preferences)
+    # Calculate the total scores for all destinations using dot product
+    total_scores = np.dot(score_matrix, user_preference_vector)
+    logging.debug('-'*20)
+    logging.debug(score_matrix)
+    logging.debug(user_preference_vector)
+    logging.debug(total_scores)
+    logging.debug('-'*20)
+
+    # Calculate percentage matches for all destinations
+    percentage_matches = (total_scores / max_score) * 100
+
+    # Combine destinations with their percentage matches
+    destination_scores = list(zip(destinations, percentage_matches))
+
+    # Sort destinations by percentage match in descending order and select the top N
+    top_n_destinations = sorted(destination_scores, key=lambda x: x[1], reverse=True)[:N]
+    logging.debug(f"top_n_destinations = {top_n_destinations}")
+
+    results = []
+
+    # Generate prompts and summaries for the top n destinations
+    for destination, percentage_match in top_n_destinations:
+        prompt = generate_prompt(destination, selected_month, selected_preferences)
+        #logging.debug(prompt)
         summary = invoke_llm(prompt)
-
-        top_3_destinations.append({"destination": destination,
-                                    "percentage_match": percentage_match,
-                                    "summary": summary})
-
-    return top_3_destinations
+        
+        results.append({
+            "destination": destination,
+            "percentage_match": int(percentage_match),
+            "summary": summary
+        })
+    logging.debug('='*50)
+    return results
