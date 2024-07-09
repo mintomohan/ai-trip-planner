@@ -7,7 +7,7 @@ import logging
 from langchain_anthropic import ChatAnthropic
 
 # Set up logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 APP_VERSION = 'v2'
 
@@ -53,9 +53,9 @@ def extract_scores_from_llm(destination, month, prompt_text, csv_file, mode='a')
             for row in table_data:
                 writer.writerow(row)
 
-        logging.debug(f"Table data for {destination} in {month} has been written to {csv_file}")
+        logging.info(f"Table data for {destination} in {month} has been written to {csv_file}")
     else:
-        logging.debug(f"Table not found in the provided text for {destination} in {month}.")
+        logging.warn(f"Table not found in the provided text for {destination} in {month}.")
 
 
 
