@@ -1,0 +1,16 @@
+[
+    {"name": "Adventure", "image": "app/assets/images/adventurer.png"},
+    {"name": "Beach", "image": "app/assets/images/beach.png"},
+    {"name": "Culinary", "image": "app/assets/images/salad.png"},
+    {"name": "Cultural", "image": "app/assets/images/dancing.png"},
+    {"name": "Nature / Ecotourism", "image": "app/assets/images/planet-earth.png"},
+    {"name": "Luxury / High-End", "image": "app/assets/images/shopping-bag.png"},
+    {"name": "Romantic Getaways", "image": "app/assets/images/romantic.png"},
+    {"name": "Family Fun", "image": "app/assets/images/family.png"},
+    {"name": "City Life / Urban", "image": "app/assets/images/building.png"},
+    {"name": "Historical / Heritage", "image": "app/assets/images/coliseum2.png"},
+    {"name": "Festival / Events", "image": "app/assets/images/confetti2.png"},
+    {"name": "Photography", "image": "app/assets/images/photographer.png"},
+    {"name": "Winter Sports", "image": "app/assets/images/skiing.png"},    
+    {"name": "Wildlife / Safari", "image": "app/assets/images/lion.png"}
+]

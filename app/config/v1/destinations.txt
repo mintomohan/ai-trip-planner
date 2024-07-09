@@ -1,0 +1,10 @@
+Beijing
+Guangzhou
+Dalian
+Hangzhou
+Hong Kong
+Seoul
+Shanghai
+Shenzhen
+Qingdao
+Taipei (Taiwan)
