@@ -57,7 +57,7 @@ def load_destination_data(file_path, selected_month):
 
 
 
-def generate_prompt(destination, month, preferences):
+def generate_prompt(destination, month, preferences, language_code):
     preferences_str = ", ".join(preferences)
     prompt = (
         f"As an expert travel agent, generate a brief summary about a destination for a specific month, "
@@ -68,6 +68,8 @@ def generate_prompt(destination, month, preferences):
         f"Month: {month}\n"
         f"Preferences: {preferences_str}\n"
     )
+    if language_code == 'ja':
+        prompt += '\n\nGenerate the result in Japanese'
     return prompt
 
 
@@ -79,9 +81,10 @@ def invoke_llm(prompt_text):
 
 
 
-def recommend_destinations(selected_preferences, selected_month):
+def recommend_destinations(selected_preferences, selected_month, language_code):
     logging.debug(selected_preferences)
     logging.debug(selected_month)
+    logging.debug(language_code)
 
     score_matrix, destinations, categories = load_destination_data(f'app/config/{APP_VERSION}/destination_rankings.csv', selected_month)
     logging.debug(score_matrix)
@@ -101,9 +104,9 @@ def recommend_destinations(selected_preferences, selected_month):
     # Calculate the total scores for all destinations using dot product
     total_scores = np.dot(score_matrix, user_preference_vector)
     logging.debug('-'*20)
-    logging.debug(score_matrix)
-    logging.debug(user_preference_vector)
-    logging.debug(total_scores)
+    logging.info(score_matrix)
+    logging.info(user_preference_vector)
+    logging.info(total_scores)
     logging.debug('-'*20)
 
     # Calculate percentage matches for all destinations
@@ -120,7 +123,7 @@ def recommend_destinations(selected_preferences, selected_month):
 
     # Generate prompts and summaries for the top n destinations
     for destination, percentage_match in top_n_destinations:
-        prompt = generate_prompt(destination, selected_month, selected_preferences)
+        prompt = generate_prompt(destination, selected_month, selected_preferences, language_code)
         #logging.debug(prompt)
         summary = invoke_llm(prompt)
         

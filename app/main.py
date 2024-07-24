@@ -2,13 +2,57 @@ import streamlit as st
 import numpy as np
 import os
 from recommendations import recommend_destinations, load_preferences
+import json
+
+translations = []
+
+def load_translations(language_code):
+    with open(f'app/config/translations/{language_code}.json', 'r', encoding='utf-8') as file:
+        return json.load(file)
+
+
+
+def month_radio_labels(option):
+    months = [
+                translations['month_jan'],
+                translations['month_feb'],
+                translations['month_mar'],
+                translations['month_apr'],
+                translations['month_may'],
+                translations['month_jun'],
+                translations['month_jul'],
+                translations['month_aug'],
+                translations['month_sep'],
+                translations['month_oct'],
+                translations['month_nov'],
+                translations['month_dec']
+            ]
+    return months[option-1]
+
+
+
+def get_month_names_eng(id:int):
+    months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    return months[id-1]
+
+
 
 preferences = load_preferences()
 
-app_name = "Trip Planner"
-st.set_page_config(page_title=app_name, page_icon="✈️", layout="wide")
-st.title(app_name)
-st.write("Select your preferences from the list below:")
+app_title = 'Trip Planner'
+if 'app_title' not in st.session_state:    
+    st.set_page_config(page_title=app_title, page_icon="✈️", layout="wide", initial_sidebar_state="collapsed")
+else:
+    st.set_page_config(page_title=st.session_state.app_title, page_icon="✈️", layout="wide", initial_sidebar_state="collapsed")
+
+language = st.sidebar.selectbox('Select Language', ['English', 'Japanese'])
+language_code = 'en' if language == 'English' else 'ja'
+translations = load_translations(language_code)
+
+st.session_state.app_title = translations['app_title']
+
+st.title(translations['app_title'])
+st.write(translations['select_preferences_message'])
 
 selected_preferences = []
 
@@ -26,39 +70,45 @@ for i, preference in enumerate(preferences):
         # Create a container for each card
         with st.container(border=True):
             # Checkbox
-            checkbox_selected = st.checkbox(preference["name"], key=f"checkbox_{i}")
+            checkbox_selected = st.checkbox(translations[preference["key"]], key=f"checkbox_{i}")
             # Image
             image_path = preference["image"]
             if os.path.exists(image_path):
                 st.image(image_path, use_column_width=True, output_format='PNG')
             # Selected Checkbox
             if checkbox_selected:
-                selected_preferences.append(preference["name"])
+                selected_preferences.append(preference["key"])
 
 
 # Radio button for month
-months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-selected_month = st.radio("Select your travel month:", months, horizontal=True)
+months = range(1,13)
+selected_month = st.radio(label='Month', label_visibility="hidden", options=months, format_func=month_radio_labels, horizontal=True)
 
 # Find button
-if st.button("Find Destination"):
+if st.button(translations["button_label_find_destination"]):
     if not selected_preferences:
-        st.write("Please select at least one preference.")
+        st.write(translations["msg_preference_not_selected"])
     elif not selected_month:
-        st.write("Please select a month of travel.")
+        st.write(translations["msg_month_not_selected"])
     else:
-        top_3_destinations = recommend_destinations(selected_preferences, selected_month)
+        print(selected_preferences)
+        print(selected_month)
+        eng = load_translations('en')
+        selected_preferences_en = [eng[p] for p in selected_preferences]
+        selected_month_en = get_month_names_eng(selected_month)
+        print(selected_preferences_en)
+        print(selected_month_en)
+        top_3_destinations = recommend_destinations(selected_preferences_en, selected_month_en, language_code)
         
-        st.write(f"Based on the preferences, visiting the following destinations is recommended:")
+        st.write(translations["msg_display_results"])
         for item in top_3_destinations:
             with st.container(border=True):
-                st.subheader(f"**{item['destination']}**")
-                st.write(f"Match : {item['percentage_match']}%")
+                st.subheader(f"**{translations[item['destination']]}**")
+                st.write(f"{translations['match']} : {item['percentage_match']}%")
                 st.write(item['summary'])
 
 
-with st.container(border=True):
+with st.expander("License & Attributions"):
     st.markdown("""
         © 2024 Minto Mohan
         
